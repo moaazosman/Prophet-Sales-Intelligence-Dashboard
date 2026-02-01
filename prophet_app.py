@@ -110,6 +110,9 @@ with st.sidebar:
     compare_cats = st.multiselect("قطاعات للمقارنة", [c for c in all_cats if c != selected_cat])
     forecast_months = st.number_input("أشهر التنبؤ", min_value=1, max_value=36, value=12)
 
+# -------------------------------------------------
+# دالة استخراج التنبؤ التفصيلي
+# -------------------------------------------------
 def get_detailed_forecast(cat, region, months):
     regs = ["Central", "South", "East", "West"] if region == "الكل" else [region]
     regional_data = []
@@ -125,10 +128,12 @@ def get_detailed_forecast(cat, region, months):
             df_res = res.copy()
             df_res['region'] = r
             regional_data.append(df_res)
-            if combined_df is None: combined_df = df_res.copy()
+            if combined_df is None:
+                combined_df = df_res.copy()
             else:
                 for col in ['yhat', 'yhat_lower', 'yhat_upper', 'trend']:
-                    if col in combined_df.columns: combined_df[col] += df_res[col]
+                    if col in combined_df.columns:
+                        combined_df[col] += df_res[col]
     return combined_df, regional_data, last_model
 
 # -------------------------------------------------
@@ -155,9 +160,26 @@ if full_forecast is not None:
     # 2. الرسم البياني الأساسي
     st.markdown('<div class="sub-header">المسار التنبؤي للمبيعات</div>', unsafe_allow_html=True)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=pd.concat([df_forecast['ds'], df_forecast['ds'][::-1]]), y=pd.concat([df_forecast['yhat_upper'], df_forecast['yhat_lower'][::-1]]), fill='toself', fillcolor='rgba(0, 119, 182, 0.15)', line=dict(color='rgba(255,255,255,0)'), name='نطاق اليقين'))
-    fig.add_trace(go.Scatter(x=df_forecast['ds'], y=df_forecast['yhat'], mode='lines+markers', line=dict(color='#0077b6', width=3), name='التوقع الرئيسي'))
-    fig.update_layout(template="none", height=450, hovermode="x unified", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color=text_color), legend=dict(font=dict(color=legend_text_color)), xaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color)), yaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color)), hoverlabel=dict(bgcolor=hover_bg, font_color=text_color))
+    fig.add_trace(go.Scatter(
+        x=pd.concat([df_forecast['ds'], df_forecast['ds'][::-1]]),
+        y=pd.concat([df_forecast['yhat_upper'], df_forecast['yhat_lower'][::-1]]),
+        fill='toself', fillcolor='rgba(0, 119, 182, 0.15)',
+        line=dict(color='rgba(255,255,255,0)'), name='نطاق اليقين'
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_forecast['ds'], y=df_forecast['yhat'],
+        mode='lines+markers', line=dict(color='#0077b6', width=3),
+        name='التوقع الرئيسي'
+    ))
+    fig.update_layout(
+        template="none", height=450, hovermode="x unified",
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color=text_color),
+        legend=dict(font=dict(color=legend_text_color)),
+        xaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color)),
+        yaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color)),
+        hoverlabel=dict(bgcolor=hover_bg, font_color=text_color)
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     # 3. جدول البيانات وزر التحميل
@@ -226,7 +248,12 @@ if full_forecast is not None:
     # 5. التوصيات
     st.markdown('<div class="advice-card">', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">💡 توصيات ذكاء الأعمال</div>', unsafe_allow_html=True)
-    advice_text = f"🚀 نمو بنسبة {growth:.1f}% متوقع." if growth > 10 else f"⚠️ تراجع بنسبة {growth:.1f}% متوقع." if growth < 0 else "📊 استقرار نسبي."
+    if growth > 10:
+        advice_text = f"🚀 نمو بنسبة {growth:.1f}% متوقع."
+    elif growth < 0:
+        advice_text = f"⚠️ تراجع بنسبة {growth:.1f}% متوقع. يُنصح بمراجعة استراتيجية المبيعات."
+    else:
+        advice_text = "📊 استقرار نسبي."
     st.write(advice_text)
     st.write(f"🔍 متوسط تذبذب التوقعات: ${confidence_range:,.0f}.")
     st.markdown('</div>', unsafe_allow_html=True)

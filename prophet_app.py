@@ -18,12 +18,9 @@ st.set_page_config(page_title="Prophet Sales Intelligence | معاذ عثمان"
 if 'dark_mode' not in st.session_state:
     st.session_state.dark_mode = True  # الوضع الافتراضي داكن
 
-with st.sidebar:
-    st.title("معاذ عثمان")
-    st.session_state.dark_mode = st.toggle("🌙 الوضع الليلي", value=st.session_state.dark_mode)
-    st.markdown("---")
-
-# تحديد الألوان بناءً على الوضع
+# -------------------------------------------------
+# إعدادات الألوان
+# -------------------------------------------------
 bg_color = "#0e1117" if st.session_state.dark_mode else "#ffffff"
 text_color = "#ffffff" if st.session_state.dark_mode else "#000000"
 grid_color = "rgba(255,255,255,0.1)" if st.session_state.dark_mode else "rgba(0,0,0,0.1)"
@@ -31,14 +28,24 @@ legend_text_color = "#E0E0E0" if st.session_state.dark_mode else "#333333"
 hover_bg = "#262730" if st.session_state.dark_mode else "#f0f2f6"
 
 # -------------------------------------------------
-# CSS 
+# CSS لتثبيت الشريط على اليسار
 # -------------------------------------------------
 st.markdown(f"""
 <style>
+/* إجبار الشريط الجانبي على اليسار */
+section[data-testid="stSidebar"] {{
+    left: 0 !important;
+    right: auto !important;
+    direction: ltr !important;
+}}
+
+/* إخفاء أي شريط جانبي يظهر على اليمين */
+section[data-testid="stSidebar"][style*="right: 0px"] {{
+    display: none !important;
+}}
+
 .stApp {{ background-color: {bg_color}; color: {text_color}; }}
 [data-testid="stAppViewContainer"] {{ direction: rtl; text-align: right; }}
-section[data-testid="stSidebar"] {{ left: 0 !important; right: auto !important; direction: ltr !important; }}
-section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{ direction: rtl !important; text-align: right !important; }}
 
 div[data-testid="stMetric"] {{
     background-color: rgba(128, 128, 128, 0.1) !important;
@@ -95,10 +102,13 @@ def load_prophet_engine():
 
 models = load_prophet_engine()
 
+
 # -------------------------------------------------
-# الإعدادات في السايدبار
+# إعدادات السايدبار
 # -------------------------------------------------
 with st.sidebar:
+    st.title("معاذ عثمان")
+    st.session_state.dark_mode = st.toggle("🌙 الوضع الليلي", value=st.session_state.dark_mode)
     st.info("نظام التنبؤ المتقدم (Prophet Engine)")
     st.markdown(f'<a href="https://wa.me/249919640534" class="sidebar-btn wa-btn">💬 واتساب</a>', unsafe_allow_html=True)
     st.markdown(f'<a href="https://www.linkedin.com/in/moaazos/" class="sidebar-btn li-btn">🔗 لينكد إن</a>', unsafe_allow_html=True)
@@ -204,10 +214,8 @@ if full_forecast is not None:
     if compare_cats:
         st.markdown("---")
         st.markdown('<div class="sub-header">مقارنة القطاعات</div>', unsafe_allow_html=True)
-        
-        col_p, col_c = st.columns([2, 1]) 
+        col_p, col_c = st.columns([2, 1])
         pie_data = [{'القطاع': selected_cat, 'المبيعات': total_sales}]
-        
         with col_p:
             fig_multi = go.Figure()
             fig_multi.add_trace(go.Scatter(x=df_forecast['ds'], y=df_forecast['yhat'], name=selected_cat, line=dict(color='#0077b6', width=3)))
@@ -217,32 +225,22 @@ if full_forecast is not None:
                     comp_tail = comp_f.tail(forecast_months)
                     fig_multi.add_trace(go.Scatter(x=comp_tail['ds'], y=comp_tail['yhat'], name=cat, line=dict(dash='dot')))
                     pie_data.append({'القطاع': cat, 'المبيعات': comp_tail['yhat'].sum()})
-            
             fig_multi.update_layout(
                 template="none", height=450,
-                margin=dict(l=10, r=10, t=50, b=10), 
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                font=dict(color=text_color), 
-                xaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color), automargin=True), 
+                margin=dict(l=10, r=10, t=50, b=10),
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color=text_color),
+                xaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color), automargin=True),
                 yaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color), automargin=True),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
             st.plotly_chart(fig_multi, use_container_width=True)
-            
         with col_c:
-            fig_pie = px.pie(
-                pd.DataFrame(pie_data), 
-                values='المبيعات', names='القطاع', hole=0.6, 
-                template="none", color_discrete_sequence=['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
-            )
+            fig_pie = px.pie(pd.DataFrame(pie_data), values='المبيعات', names='القطاع', hole=0.6, template="none",
+                             color_discrete_sequence=['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8'])
             fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-            fig_pie.update_layout(
-                height=450, 
-                margin=dict(t=80, b=50, l=10, r=10), 
-                paper_bgcolor='rgba(0,0,0,0)', 
-                font=dict(color=text_color, size=13), 
-                showlegend=False
-            )
+            fig_pie.update_layout(height=450, margin=dict(t=80, b=50, l=10, r=10),
+                                  paper_bgcolor='rgba(0,0,0,0)', font=dict(color=text_color, size=13), showlegend=False)
             st.plotly_chart(fig_pie, use_container_width=True)
 
     # 5. التوصيات
@@ -262,7 +260,8 @@ if full_forecast is not None:
     if selected_region == "الكل":
         st.markdown('<div class="sub-header">تحليل مساهمة المناطق</div>', unsafe_allow_html=True)
         contrib_df = pd.concat([d.tail(forecast_months) for d in regional_list])
-        fig_area = px.area(contrib_df, x="ds", y="yhat", color="region", template="none", color_discrete_sequence=px.colors.sequential.Blues_r)
+        fig_area = px.area(contrib_df, x="ds", y="yhat", color="region", template="none",
+                           color_discrete_sequence=px.colors.sequential.Blues_r)
         fig_area.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color=text_color))
         st.plotly_chart(fig_area, use_container_width=True)
 

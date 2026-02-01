@@ -143,7 +143,7 @@ def get_detailed_forecast(cat, region, months):
 # -------------------------------------------------
 # العرض الرئيسي
 # -------------------------------------------------
-st.markdown(f'<div class="header-style">Smart Sales Predictor: {selected_cat}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="header-style">Sales Predictor: {selected_cat}</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="region-style">📍 النطاق الجغرافي: {selected_region}</div>', unsafe_allow_html=True)
 
 full_forecast, regional_list, base_model = get_detailed_forecast(selected_cat, selected_region, forecast_months)

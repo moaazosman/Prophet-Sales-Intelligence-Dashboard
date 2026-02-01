@@ -13,38 +13,62 @@ import io
 st.set_page_config(page_title="Prophet Sales Intelligence | معاذ عثمان", layout="wide")
 
 # -------------------------------------------------
-# إدارة وضع الإضاءة (الليلي/النهاري)
+# كشف وضع المتصفح تلقائياً (نهاري أو داكن)
 # -------------------------------------------------
+dark_mode_js = """
+<script>
+const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+document.body.setAttribute('data-dark', isDark);
+</script>
+"""
+st.components.v1.html(dark_mode_js, height=0)
+
+# -------------------------------------------------
+# اختيار الألوان حسب المتصفح
+# -------------------------------------------------
+# نستخدم session_state لتخزين الوضع الداكن
 if 'dark_mode' not in st.session_state:
-    st.session_state.dark_mode = True  # الوضع الافتراضي داكن
+    # الوضع الافتراضي: نستخدم الـ JS attribute لاحقاً للتحديث
+    st.session_state.dark_mode = False
 
 # -------------------------------------------------
-# إعدادات الألوان
+# ألوان حسب الوضع
 # -------------------------------------------------
-bg_color = "#0e1117" if st.session_state.dark_mode else "#ffffff"
-text_color = "#ffffff" if st.session_state.dark_mode else "#000000"
-grid_color = "rgba(255,255,255,0.1)" if st.session_state.dark_mode else "rgba(0,0,0,0.1)"
-legend_text_color = "#E0E0E0" if st.session_state.dark_mode else "#333333"
-hover_bg = "#262730" if st.session_state.dark_mode else "#f0f2f6"
+def get_colors():
+    if st.session_state.dark_mode:
+        return {
+            "bg": "#0e1117",
+            "text": "#ffffff",
+            "grid": "rgba(255,255,255,0.1)",
+            "legend": "#E0E0E0",
+            "hover": "#262730"
+        }
+    else:
+        return {
+            "bg": "#ffffff",
+            "text": "#000000",
+            "grid": "rgba(0,0,0,0.1)",
+            "legend": "#333333",
+            "hover": "#f0f2f6"
+        }
+
+colors = get_colors()
 
 # -------------------------------------------------
-# CSS لتثبيت الشريط على اليسار
+# CSS لتثبيت الشريط على اليسار + ألوان ديناميكية
 # -------------------------------------------------
 st.markdown(f"""
 <style>
-/* إجبار الشريط الجانبي على اليسار */
 section[data-testid="stSidebar"] {{
     left: 0 !important;
     right: auto !important;
     direction: ltr !important;
 }}
-
-/* إخفاء أي شريط جانبي يظهر على اليمين */
 section[data-testid="stSidebar"][style*="right: 0px"] {{
     display: none !important;
 }}
 
-.stApp {{ background-color: {bg_color}; color: {text_color}; }}
+.stApp {{ background-color: {colors['bg']}; color: {colors['text']}; }}
 [data-testid="stAppViewContainer"] {{ direction: rtl; text-align: right; }}
 
 div[data-testid="stMetric"] {{
@@ -53,37 +77,33 @@ div[data-testid="stMetric"] {{
     padding: 20px !important; border-radius: 15px !important;
     text-align: center !important;
 }}
-
 [data-testid="stMetricLabel"] div p {{
-    color: {text_color} !important;
+    color: {colors['text']} !important;
     font-weight: 900 !important;
     font-size: 18px !important;
-    opacity: 1 !important;
+    opacity:1;
 }}
-
-[data-testid="stDataFrame"], [data-testid="stTable"] {{
-    background-color: transparent !important;
-}}
+[data-testid="stDataFrame"], [data-testid="stTable"] {{ background-color: transparent !important; }}
 
 .header-style {{ font-size: clamp(24px, 5vw, 38px); font-weight: 900; color: #0077b6; margin-bottom: 5px; }}
-.region-style {{ font-size: 20px; color: {text_color}; margin-bottom: 30px; font-weight: 700; opacity: 0.8; }}
-.sub-header {{ font-size: 24px; font-weight: 700; color: {text_color}; margin-bottom: 15px; margin-top: 15px; }}
+.region-style {{ font-size: 20px; color: {colors['text']}; margin-bottom: 30px; font-weight: 700; opacity: 0.8; }}
+.sub-header {{ font-size: 24px; font-weight: 700; color: {colors['text']}; margin-bottom: 15px; margin-top: 15px; }}
 .advice-card {{ background-color: rgba(0, 119, 182, 0.08); border-right: 6px solid #0077b6; padding: 25px; border-radius: 12px; margin-top: 25px; }}
 
 .sidebar-btn {{ display: block !important; width: 100%; padding: 12px; margin-bottom: 10px; text-align: center; border-radius: 8px; text-decoration: none !important; font-weight: bold; color: white !important; }}
 .wa-btn {{ background-color: #25D366; }} .li-btn {{ background-color: #0077B5; }}
 
 .stDownloadButton button {{
-    width: 100%;
-    background-color: #0077b6 !important;
-    color: white !important;
-    border-radius: 8px !important;
+    width:100%;
+    background-color:#0077b6 !important;
+    color:white !important;
+    border-radius:8px !important;
 }}
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------
-# دالة تحميل النماذج
+# تحميل النماذج
 # -------------------------------------------------
 @st.cache_resource
 def load_prophet_engine():
@@ -101,7 +121,6 @@ def load_prophet_engine():
     return loaded_models
 
 models = load_prophet_engine()
-
 
 # -------------------------------------------------
 # إعدادات السايدبار
@@ -184,11 +203,11 @@ if full_forecast is not None:
     fig.update_layout(
         template="none", height=450, hovermode="x unified",
         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color=text_color),
-        legend=dict(font=dict(color=legend_text_color)),
-        xaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color)),
-        yaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color)),
-        hoverlabel=dict(bgcolor=hover_bg, font_color=text_color)
+        font=dict(color=colors['text']),
+        legend=dict(font=dict(color=colors['legend'])),
+        xaxis=dict(gridcolor=colors['grid'], tickfont=dict(color=colors['text'])),
+        yaxis=dict(gridcolor=colors['grid'], tickfont=dict(color=colors['text'])),
+        hoverlabel=dict(bgcolor=colors['hover'], font_color=colors['text'])
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -229,9 +248,9 @@ if full_forecast is not None:
                 template="none", height=450,
                 margin=dict(l=10, r=10, t=50, b=10),
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color=text_color),
-                xaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color), automargin=True),
-                yaxis=dict(gridcolor=grid_color, tickfont=dict(color=text_color), automargin=True),
+                font=dict(color=colors['text']),
+                xaxis=dict(gridcolor=colors['grid'], tickfont=dict(color=colors['text']), automargin=True),
+                yaxis=dict(gridcolor=colors['grid'], tickfont=dict(color=colors['text']), automargin=True),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
             st.plotly_chart(fig_multi, use_container_width=True)
@@ -240,7 +259,7 @@ if full_forecast is not None:
                              color_discrete_sequence=['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8'])
             fig_pie.update_traces(textposition='inside', textinfo='percent+label')
             fig_pie.update_layout(height=450, margin=dict(t=80, b=50, l=10, r=10),
-                                  paper_bgcolor='rgba(0,0,0,0)', font=dict(color=text_color, size=13), showlegend=False)
+                                  paper_bgcolor='rgba(0,0,0,0)', font=dict(color=colors['text'], size=13), showlegend=False)
             st.plotly_chart(fig_pie, use_container_width=True)
 
     # 5. التوصيات
@@ -262,7 +281,7 @@ if full_forecast is not None:
         contrib_df = pd.concat([d.tail(forecast_months) for d in regional_list])
         fig_area = px.area(contrib_df, x="ds", y="yhat", color="region", template="none",
                            color_discrete_sequence=px.colors.sequential.Blues_r)
-        fig_area.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color=text_color))
+        fig_area.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color=colors['text']))
         st.plotly_chart(fig_area, use_container_width=True)
 
     # 7. المكونات
@@ -270,11 +289,11 @@ if full_forecast is not None:
         st.markdown('<div class="sub-header">تحليل المكونات (الموسمية والاتجاه)</div>', unsafe_allow_html=True)
         try:
             fig_comp = plot_components_plotly(base_model, full_forecast)
-            fig_comp.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color=text_color))
-            fig_comp.update_xaxes(tickfont=dict(color=text_color), gridcolor=grid_color)
-            fig_comp.update_yaxes(tickfont=dict(color=text_color), gridcolor=grid_color)
+            fig_comp.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color=colors['text']))
+            fig_comp.update_xaxes(tickfont=dict(color=colors['text']), gridcolor=colors['grid'])
+            fig_comp.update_yaxes(tickfont=dict(color=colors['text']), gridcolor=colors['grid'])
             st.plotly_chart(fig_comp, use_container_width=True)
         except:
             st.info("تحليل المكونات متاح للمناطق الفردية.")
 
-st.markdown(f"<hr><div style='text-align: center; opacity: 0.6; color: {text_color};'>تطوير: معاذ عثمان | 2026</div>", unsafe_allow_html=True)
+st.markdown(f"<hr><div style='text-align: center; opacity: 0.6; color: {colors['text']};'>تطوير: معاذ عثمان | 2026</div>", unsafe_allow_html=True)

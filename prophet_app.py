@@ -13,13 +13,7 @@ import io
 st.set_page_config(page_title="Prophet Sales Intelligence | معاذ عثمان", layout="wide")
 
 # -------------------------------------------------
-# إعدادات الألوان (تتكيف مع ثيم Streamlit)
-# -------------------------------------------------
-text_color = "var(--text-color)"
-bg_color = "var(--background-color)"
-
-# -------------------------------------------------
-# CSS  تنسيق الواجهة العلوية
+# CSS:  الواجهة العلوية
 # -------------------------------------------------
 st.markdown(f"""
 <style>
@@ -95,7 +89,7 @@ models = load_prophet_engine()
 # -------------------------------------------------
 # منطقة إعدادات علوية (Top Navigation)
 # -------------------------------------------------
-st.markdown('<div class="header-style">معاذ عثمان | نظام التنبؤ المتقدم</div>', unsafe_allow_html=True)
+st.markdown('<div class="header-style">معاذ عثمان | نظام التنبؤ للمبيعات</div>', unsafe_allow_html=True)
 
 # أزرار التواصل في الأعلى
 st.markdown(f"""
@@ -167,7 +161,7 @@ if full_forecast is not None:
     c2.metric("معدل النمو المتوقع", f"{growth:+.1f}%")
     c3.metric("نطاق اليقين (95%)", f"${confidence_range:,.0f}")
 
-    # 2. الرسم البياني
+    # 2. الرسم البياني (تعديل ليتكيف تلقائياً)
     st.markdown('<div class="sub-header">المسار التنبؤي للمبيعات</div>', unsafe_allow_html=True)
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -181,8 +175,9 @@ if full_forecast is not None:
         mode='lines+markers', line=dict(color='#0077b6', width=3),
         name='التوقع الرئيسي'
     ))
+    
     fig.update_layout(
-        template="none", height=450, hovermode="x unified",
+        height=450, hovermode="x unified",
         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
         xaxis=dict(automargin=True), yaxis=dict(automargin=True)
     )
@@ -192,8 +187,6 @@ if full_forecast is not None:
     st.markdown('<div class="sub-header">📋 جدول البيانات التنبؤية الكامل</div>', unsafe_allow_html=True)
     display_df = df_forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].copy()
     display_df['ds'] = display_df['ds'].dt.strftime('%Y-%m-%d')
-    
-    # إعادة تسمية الأعمدة لتكون مفهومة للجميع
     display_df.columns = ['التاريخ', 'المبيعات المتوقعة', 'الحد الأدنى المتوقع', 'الحد الأعلى المتوقع']
     
     col_table, col_download = st.columns([4, 1])
@@ -225,10 +218,13 @@ if full_forecast is not None:
                     comp_tail = comp_f.tail(forecast_months)
                     fig_multi.add_trace(go.Scatter(x=comp_tail['ds'], y=comp_tail['yhat'], name=cat, line=dict(dash='dot')))
                     pie_data.append({'القطاع': cat, 'المبيعات': comp_tail['yhat'].sum()})
-            fig_multi.update_layout(template="none", height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+            fig_multi.update_layout(
+                height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
             st.plotly_chart(fig_multi, use_container_width=True)
         with col_c:
-            fig_pie = px.pie(pd.DataFrame(pie_data), values='المبيعات', names='القطاع', hole=0.6, template="none", color_discrete_sequence=['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8'])
+            fig_pie = px.pie(pd.DataFrame(pie_data), values='المبيعات', names='القطاع', hole=0.6, color_discrete_sequence=['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8'])
             fig_pie.update_layout(height=450, paper_bgcolor='rgba(0,0,0,0)', showlegend=False)
             st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -237,18 +233,18 @@ if full_forecast is not None:
     st.markdown('<div class="sub-header">💡 توصيات ذكاء الأعمال</div>', unsafe_allow_html=True)
     advice_text = f"🚀 نمو بنسبة {growth:.1f}% متوقع." if growth > 10 else f"⚠️ تراجع بنسبة {growth:.1f}% متوقع." if growth < 0 else "📊 استقرار نسبي."
     st.write(advice_text)
-    st.write(f"متوسط تذبذب التوقعات: ${confidence_range:,.0f}.")
+    st.write(f"🔍 متوسط تذبذب التوقعات: ${confidence_range:,.0f}.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # 6. مساهمة المناطق
+    # 6. مساهمة المناطق)
     if selected_region == "الكل":
         st.markdown('<div class="sub-header">تحليل مساهمة المناطق</div>', unsafe_allow_html=True)
         contrib_df = pd.concat([d.tail(forecast_months) for d in regional_list])
-        fig_area = px.area(contrib_df, x="ds", y="yhat", color="region", template="none", color_discrete_sequence=px.colors.sequential.Blues_r)
+        fig_area = px.area(contrib_df, x="ds", y="yhat", color="region", color_discrete_sequence=px.colors.sequential.Blues_r)
         fig_area.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_area, use_container_width=True)
 
-    # 7. المكونات
+    # 7. المكونات)
     if base_model:
         st.markdown('<div class="sub-header">تحليل المكونات (الموسمية والاتجاه)</div>', unsafe_allow_html=True)
         try:

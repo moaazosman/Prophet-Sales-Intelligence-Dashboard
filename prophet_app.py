@@ -13,63 +13,27 @@ import io
 st.set_page_config(page_title="Prophet Sales Intelligence | معاذ عثمان", layout="wide")
 
 # -------------------------------------------------
-# كشف وضع المتصفح تلقائياً (نهاري أو داكن)
+# إعدادات الألوان (تتكيف مع ثيم Streamlit)
 # -------------------------------------------------
-dark_mode_js = """
-<script>
-const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-document.body.setAttribute('data-dark', isDark);
-</script>
-"""
-st.components.v1.html(dark_mode_js, height=0)
+text_color = "var(--text-color)"
+bg_color = "var(--background-color)"
 
 # -------------------------------------------------
-# اختيار الألوان حسب المتصفح
-# -------------------------------------------------
-# نستخدم session_state لتخزين الوضع الداكن
-if 'dark_mode' not in st.session_state:
-    # الوضع الافتراضي: نستخدم الـ JS attribute لاحقاً للتحديث
-    st.session_state.dark_mode = False
-
-# -------------------------------------------------
-# ألوان حسب الوضع
-# -------------------------------------------------
-def get_colors():
-    if st.session_state.dark_mode:
-        return {
-            "bg": "#0e1117",
-            "text": "#ffffff",
-            "grid": "rgba(255,255,255,0.1)",
-            "legend": "#E0E0E0",
-            "hover": "#262730"
-        }
-    else:
-        return {
-            "bg": "#ffffff",
-            "text": "#000000",
-            "grid": "rgba(0,0,0,0.1)",
-            "legend": "#333333",
-            "hover": "#f0f2f6"
-        }
-
-colors = get_colors()
-
-# -------------------------------------------------
-# CSS لتثبيت الشريط على اليسار + ألوان ديناميكية
+# CSS  تنسيق الواجهة العلوية
 # -------------------------------------------------
 st.markdown(f"""
 <style>
-section[data-testid="stSidebar"] {{
-    left: 0 !important;
-    right: auto !important;
-    direction: ltr !important;
-}}
-section[data-testid="stSidebar"][style*="right: 0px"] {{
+/* إخفاء السايدبار تماماً */
+[data-testid="stSidebar"] {{
     display: none !important;
 }}
 
-.stApp {{ background-color: {colors['bg']}; color: {colors['text']}; }}
-[data-testid="stAppViewContainer"] {{ direction: rtl; text-align: right; }}
+/* ضبط مساحة الصفحة لتستغل كامل العرض */
+[data-testid="stAppViewContainer"] {{
+    direction: rtl;
+    text-align: right;
+    padding-top: 2rem;
+}}
 
 div[data-testid="stMetric"] {{
     background-color: rgba(128, 128, 128, 0.1) !important;
@@ -77,33 +41,39 @@ div[data-testid="stMetric"] {{
     padding: 20px !important; border-radius: 15px !important;
     text-align: center !important;
 }}
+
 [data-testid="stMetricLabel"] div p {{
-    color: {colors['text']} !important;
     font-weight: 900 !important;
     font-size: 18px !important;
-    opacity:1;
+    opacity: 1 !important;
 }}
-[data-testid="stDataFrame"], [data-testid="stTable"] {{ background-color: transparent !important; }}
 
 .header-style {{ font-size: clamp(24px, 5vw, 38px); font-weight: 900; color: #0077b6; margin-bottom: 5px; }}
-.region-style {{ font-size: 20px; color: {colors['text']}; margin-bottom: 30px; font-weight: 700; opacity: 0.8; }}
-.sub-header {{ font-size: 24px; font-weight: 700; color: {colors['text']}; margin-bottom: 15px; margin-top: 15px; }}
+.region-style {{ font-size: 20px; margin-bottom: 30px; font-weight: 700; opacity: 0.8; }}
+.sub-header {{ font-size: 24px; font-weight: 700; margin-bottom: 15px; margin-top: 15px; }}
 .advice-card {{ background-color: rgba(0, 119, 182, 0.08); border-right: 6px solid #0077b6; padding: 25px; border-radius: 12px; margin-top: 25px; }}
 
-.sidebar-btn {{ display: block !important; width: 100%; padding: 12px; margin-bottom: 10px; text-align: center; border-radius: 8px; text-decoration: none !important; font-weight: bold; color: white !important; }}
+/* تنسيق أزرار التواصل العلوية */
+.top-btn-container {{ display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }}
+.top-btn {{ padding: 10px 20px; border-radius: 8px; text-decoration: none !important; font-weight: bold; color: white !important; display: inline-block; }}
 .wa-btn {{ background-color: #25D366; }} .li-btn {{ background-color: #0077B5; }}
 
 .stDownloadButton button {{
-    width:100%;
-    background-color:#0077b6 !important;
-    color:white !important;
-    border-radius:8px !important;
+    width: 100%;
+    background-color: #0077b6 !important;
+    color: white !important;
+    border-radius: 8px !important;
+}}
+
+/* تحسين شكل المدخلات في الأعلى */
+.stSelectbox, .stNumberInput, .stMultiSelect {{
+    border-radius: 10px;
 }}
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------
-# تحميل النماذج
+# دالة تحميل النماذج
 # -------------------------------------------------
 @st.cache_resource
 def load_prophet_engine():
@@ -123,24 +93,35 @@ def load_prophet_engine():
 models = load_prophet_engine()
 
 # -------------------------------------------------
-# إعدادات السايدبار
+# منطقة إعدادات علوية (Top Navigation)
 # -------------------------------------------------
-with st.sidebar:
-    st.title("معاذ عثمان")
-    st.session_state.dark_mode = st.toggle("🌙 الوضع الليلي", value=st.session_state.dark_mode)
-    st.info("نظام التنبؤ المتقدم (Prophet Engine)")
-    st.markdown(f'<a href="https://wa.me/249919640534" class="sidebar-btn wa-btn">💬 واتساب</a>', unsafe_allow_html=True)
-    st.markdown(f'<a href="https://www.linkedin.com/in/moaazos/" class="sidebar-btn li-btn">🔗 لينكد إن</a>', unsafe_allow_html=True)
-    st.markdown("---")
-    st.subheader("⚙️ الإعدادات")
-    selected_region = st.selectbox("المنطقة الجغرافية", ["الكل", "Central", "South", "East", "West"])
-    all_cats = ["الأثاث", "الأدوات المكتبية", "التكنولوجيا"]
-    selected_cat = st.selectbox("القطاع الرئيسي", all_cats)
-    compare_cats = st.multiselect("قطاعات للمقارنة", [c for c in all_cats if c != selected_cat])
-    forecast_months = st.number_input("أشهر التنبؤ", min_value=1, max_value=36, value=12)
+st.markdown('<div class="header-style">معاذ عثمان | نظام التنبؤ المتقدم</div>', unsafe_allow_html=True)
+
+# أزرار التواصل في الأعلى
+st.markdown(f"""
+<div class="top-btn-container">
+    <a href="https://wa.me/249919640534" class="top-btn wa-btn">💬 واتساب</a>
+    <a href="https://www.linkedin.com/in/moaazos/" class="top-btn li-btn">🔗 لينكد إن</a>
+</div>
+""", unsafe_allow_html=True)
+
+# منطقة الإعدادات
+with st.expander("⚙️ إعدادات التحكم والفلترة", expanded=True):
+    col_set1, col_set2, col_set3, col_set4 = st.columns(4)
+    with col_set1:
+        selected_region = st.selectbox("المنطقة الجغرافية", ["الكل", "Central", "South", "East", "West"])
+    with col_set2:
+        all_cats = ["الأثاث", "الأدوات المكتبية", "التكنولوجيا"]
+        selected_cat = st.selectbox("القطاع الرئيسي", all_cats)
+    with col_set3:
+        compare_cats = st.multiselect("قطاعات للمقارنة", [c for c in all_cats if c != selected_cat])
+    with col_set4:
+        forecast_months = st.number_input("أشهر التنبؤ", min_value=1, max_value=36, value=12)
+
+st.markdown("---")
 
 # -------------------------------------------------
-# دالة استخراج التنبؤ التفصيلي
+# دالة استخراج التنبؤ
 # -------------------------------------------------
 def get_detailed_forecast(cat, region, months):
     regs = ["Central", "South", "East", "West"] if region == "الكل" else [region]
@@ -168,7 +149,7 @@ def get_detailed_forecast(cat, region, months):
 # -------------------------------------------------
 # العرض الرئيسي
 # -------------------------------------------------
-st.markdown(f'<div class="header-style">Smart Sales Predictor (متنبئ المبيعات الذكي): {selected_cat}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="header-style">Smart Sales Predictor: {selected_cat}</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="region-style">📍 النطاق الجغرافي: {selected_region}</div>', unsafe_allow_html=True)
 
 full_forecast, regional_list, base_model = get_detailed_forecast(selected_cat, selected_region, forecast_months)
@@ -186,7 +167,7 @@ if full_forecast is not None:
     c2.metric("معدل النمو المتوقع", f"{growth:+.1f}%")
     c3.metric("نطاق اليقين (95%)", f"${confidence_range:,.0f}")
 
-    # 2. الرسم البياني الأساسي
+    # 2. الرسم البياني
     st.markdown('<div class="sub-header">المسار التنبؤي للمبيعات</div>', unsafe_allow_html=True)
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -203,18 +184,18 @@ if full_forecast is not None:
     fig.update_layout(
         template="none", height=450, hovermode="x unified",
         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color=colors['text']),
-        legend=dict(font=dict(color=colors['legend'])),
-        xaxis=dict(gridcolor=colors['grid'], tickfont=dict(color=colors['text'])),
-        yaxis=dict(gridcolor=colors['grid'], tickfont=dict(color=colors['text'])),
-        hoverlabel=dict(bgcolor=colors['hover'], font_color=colors['text'])
+        xaxis=dict(automargin=True), yaxis=dict(automargin=True)
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # 3. جدول البيانات وزر التحميل
+    # 3. جدول البيانات المعدل
     st.markdown('<div class="sub-header">📋 جدول البيانات التنبؤية الكامل</div>', unsafe_allow_html=True)
     display_df = df_forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].copy()
     display_df['ds'] = display_df['ds'].dt.strftime('%Y-%m-%d')
+    
+    # إعادة تسمية الأعمدة لتكون مفهومة للجميع
+    display_df.columns = ['التاريخ', 'المبيعات المتوقعة', 'الحد الأدنى المتوقع', 'الحد الأعلى المتوقع']
+    
     col_table, col_download = st.columns([4, 1])
     with col_table:
         st.dataframe(display_df, use_container_width=True)
@@ -244,44 +225,27 @@ if full_forecast is not None:
                     comp_tail = comp_f.tail(forecast_months)
                     fig_multi.add_trace(go.Scatter(x=comp_tail['ds'], y=comp_tail['yhat'], name=cat, line=dict(dash='dot')))
                     pie_data.append({'القطاع': cat, 'المبيعات': comp_tail['yhat'].sum()})
-            fig_multi.update_layout(
-                template="none", height=450,
-                margin=dict(l=10, r=10, t=50, b=10),
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color=colors['text']),
-                xaxis=dict(gridcolor=colors['grid'], tickfont=dict(color=colors['text']), automargin=True),
-                yaxis=dict(gridcolor=colors['grid'], tickfont=dict(color=colors['text']), automargin=True),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
+            fig_multi.update_layout(template="none", height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
             st.plotly_chart(fig_multi, use_container_width=True)
         with col_c:
-            fig_pie = px.pie(pd.DataFrame(pie_data), values='المبيعات', names='القطاع', hole=0.6, template="none",
-                             color_discrete_sequence=['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8'])
-            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-            fig_pie.update_layout(height=450, margin=dict(t=80, b=50, l=10, r=10),
-                                  paper_bgcolor='rgba(0,0,0,0)', font=dict(color=colors['text'], size=13), showlegend=False)
+            fig_pie = px.pie(pd.DataFrame(pie_data), values='المبيعات', names='القطاع', hole=0.6, template="none", color_discrete_sequence=['#0077b6', '#00b4d8', '#90e0ef', '#caf0f8'])
+            fig_pie.update_layout(height=450, paper_bgcolor='rgba(0,0,0,0)', showlegend=False)
             st.plotly_chart(fig_pie, use_container_width=True)
 
     # 5. التوصيات
     st.markdown('<div class="advice-card">', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">💡 توصيات ذكاء الأعمال</div>', unsafe_allow_html=True)
-    if growth > 10:
-        advice_text = f"🚀 نمو بنسبة {growth:.1f}% متوقع."
-    elif growth < 0:
-        advice_text = f"⚠️ تراجع بنسبة {growth:.1f}% متوقع. يُنصح بمراجعة استراتيجية المبيعات."
-    else:
-        advice_text = "📊 استقرار نسبي."
+    advice_text = f"🚀 نمو بنسبة {growth:.1f}% متوقع." if growth > 10 else f"⚠️ تراجع بنسبة {growth:.1f}% متوقع." if growth < 0 else "📊 استقرار نسبي."
     st.write(advice_text)
-    st.write(f"🔍 متوسط تذبذب التوقعات: ${confidence_range:,.0f}.")
+    st.write(f"متوسط تذبذب التوقعات: ${confidence_range:,.0f}.")
     st.markdown('</div>', unsafe_allow_html=True)
 
     # 6. مساهمة المناطق
     if selected_region == "الكل":
         st.markdown('<div class="sub-header">تحليل مساهمة المناطق</div>', unsafe_allow_html=True)
         contrib_df = pd.concat([d.tail(forecast_months) for d in regional_list])
-        fig_area = px.area(contrib_df, x="ds", y="yhat", color="region", template="none",
-                           color_discrete_sequence=px.colors.sequential.Blues_r)
-        fig_area.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color=colors['text']))
+        fig_area = px.area(contrib_df, x="ds", y="yhat", color="region", template="none", color_discrete_sequence=px.colors.sequential.Blues_r)
+        fig_area.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_area, use_container_width=True)
 
     # 7. المكونات
@@ -289,11 +253,9 @@ if full_forecast is not None:
         st.markdown('<div class="sub-header">تحليل المكونات (الموسمية والاتجاه)</div>', unsafe_allow_html=True)
         try:
             fig_comp = plot_components_plotly(base_model, full_forecast)
-            fig_comp.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color=colors['text']))
-            fig_comp.update_xaxes(tickfont=dict(color=colors['text']), gridcolor=colors['grid'])
-            fig_comp.update_yaxes(tickfont=dict(color=colors['text']), gridcolor=colors['grid'])
+            fig_comp.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_comp, use_container_width=True)
         except:
             st.info("تحليل المكونات متاح للمناطق الفردية.")
 
-st.markdown(f"<hr><div style='text-align: center; opacity: 0.6; color: {colors['text']};'>تطوير: معاذ عثمان | 2026</div>", unsafe_allow_html=True)
+st.markdown(f"<hr><div style='text-align: center; opacity: 0.6;'>تطوير: معاذ عثمان | 2026</div>", unsafe_allow_html=True)
